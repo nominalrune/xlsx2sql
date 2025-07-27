@@ -2,6 +2,7 @@ use calamine::{open_workbook_auto, Reader};
 use std::path::Path;
 use crate::errors::ParseError;
 use crate::parser::data_model::{WorkbookData, SheetData};
+use crate::input::file_handler::{validate_file_exists, validate_file_format};
 
 pub trait XlsxParser {
     fn parse(&self, file_path: &Path) -> Result<WorkbookData, ParseError>;
@@ -11,8 +12,16 @@ pub struct CalamineXlsxParser;
 
 impl XlsxParser for CalamineXlsxParser {
     fn parse(&self, file_path: &Path) -> Result<WorkbookData, ParseError> {
+        // Validate file exists and format
+        validate_file_exists(file_path).map_err(|_| ParseError::InvalidFormat)?;
+        validate_file_format(file_path).map_err(|_| ParseError::InvalidFormat)?;
+
         let mut workbook = open_workbook_auto(file_path)?;
         let sheet_names = workbook.sheet_names().to_owned();
+        
+        if sheet_names.is_empty() {
+            return Err(ParseError::InvalidFormat);
+        }
         
         let mut sheets = Vec::new();
         for sheet_name in sheet_names {

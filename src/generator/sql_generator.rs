@@ -1,5 +1,6 @@
 use crate::errors::GeneratorError;
 use crate::parser::data_model::{WorkbookData, SqlStatement, SqlValue};
+use crate::generator::formatter::SqlFormatter;
 
 pub trait SqlGenerator {
     fn generate(&self, data: &WorkbookData) -> Result<Vec<SqlStatement>, GeneratorError>;
@@ -35,13 +36,18 @@ impl SqlGenerator for MySqlGenerator {
             }
         }
         
+        // Check if no data was found
+        if statements.is_empty() {
+            return Err(GeneratorError::NoData);
+        }
+        
         Ok(statements)
     }
     
     fn format_statement(&self, statement: &SqlStatement) -> String {
-        let table_name = format!("`{}`", statement.table_name);
+        let table_name = SqlFormatter::format_identifier(&statement.table_name);
         let columns = statement.columns.iter()
-            .map(|col| format!("`{}`", col))
+            .map(|col| SqlFormatter::format_identifier(col))
             .collect::<Vec<_>>()
             .join(", ");
         
@@ -64,7 +70,7 @@ impl MySqlGenerator {
     fn format_sql_value(&self, value: &SqlValue) -> String {
         match value {
             SqlValue::Null => "NULL".to_string(),
-            SqlValue::Text(s) => format!("'{}'", s.replace("'", "''")),
+            SqlValue::Text(s) => SqlFormatter::format_string_literal(s),
             SqlValue::Number(f) => f.to_string(),
             SqlValue::Integer(i) => i.to_string(),
             SqlValue::Boolean(b) => if *b { "1" } else { "0" }.to_string(),

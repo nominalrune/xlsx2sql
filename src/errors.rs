@@ -23,9 +23,6 @@ pub enum InputError {
     #[error("File not found: {0}")]
     FileNotFound(String),
     
-    #[error("Permission denied: {0}")]
-    PermissionDenied(String),
-    
     #[error("Invalid file format")]
     InvalidFormat,
     
