@@ -1,0 +1,184 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-pc-windows-gnu
+            os: ubuntu-latest
+            binary_name: xlsx2sql.exe
+            archive_name: xlsx2sql-windows-x64
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            binary_name: xlsx2sql
+            archive_name: xlsx2sql-macos-intel
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            binary_name: xlsx2sql
+            archive_name: xlsx2sql-macos-arm64
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            binary_name: xlsx2sql
+            archive_name: xlsx2sql-linux-x64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+
+    - name: Install cross-compilation tools (Windows)
+      if: matrix.target == 'x86_64-pc-windows-gnu'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-mingw-w64-x86-64
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Build binary
+      run: |
+        cargo build --release --target ${{ matrix.target }}
+
+    - name: Create archive (Windows)
+      if: matrix.target == 'x86_64-pc-windows-gnu'
+      run: |
+        mkdir -p dist
+        cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} dist/
+        cp README.md dist/ || echo "README.md not found"
+        cp LICENSE dist/ || echo "LICENSE not found"
+        cd dist
+        zip -r ../${{ matrix.archive_name }}.zip .
+        cd ..
+
+    - name: Create archive (Unix)
+      if: matrix.target != 'x86_64-pc-windows-gnu'
+      run: |
+        mkdir -p dist
+        cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} dist/
+        cp README.md dist/ || echo "README.md not found"
+        cp LICENSE dist/ || echo "LICENSE not found"
+        cd dist
+        tar -czf ../${{ matrix.archive_name }}.tar.gz .
+        cd ..
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.archive_name }}
+        path: |
+          ${{ matrix.archive_name }}.zip
+          ${{ matrix.archive_name }}.tar.gz
+        if-no-files-found: ignore
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: List downloaded files
+      run: find . -name "*.zip" -o -name "*.tar.gz" | sort
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: |
+          # xlsx2sql ${{ github.ref_name }}
+          
+          Convert Excel files (.xlsx) to SQL INSERT statements.
+          
+          ## Download
+          
+          Choose the appropriate binary for your platform:
+          
+          - **Windows 64-bit**: `xlsx2sql-windows-x64.zip`
+          - **macOS Intel**: `xlsx2sql-macos-intel.tar.gz`
+          - **macOS Apple Silicon**: `xlsx2sql-macos-arm64.tar.gz`
+          - **Linux 64-bit**: `xlsx2sql-linux-x64.tar.gz`
+          
+          ## Usage
+          
+          ```bash
+          xlsx2sql input.xlsx           # Creates input.sql
+          xlsx2sql input.xlsx -o output.sql
+          ```
+          
+          ## Changes
+          
+          See the commit history for detailed changes in this release.
+        draft: false
+        prerelease: false
+
+    - name: Upload Windows Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./xlsx2sql-windows-x64/xlsx2sql-windows-x64.zip
+        asset_name: xlsx2sql-windows-x64.zip
+        asset_content_type: application/zip
+
+    - name: Upload macOS Intel Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./xlsx2sql-macos-intel/xlsx2sql-macos-intel.tar.gz
+        asset_name: xlsx2sql-macos-intel.tar.gz
+        asset_content_type: application/gzip
+
+    - name: Upload macOS ARM64 Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./xlsx2sql-macos-arm64/xlsx2sql-macos-arm64.tar.gz
+        asset_name: xlsx2sql-macos-arm64.tar.gz
+        asset_content_type: application/gzip
+
+    - name: Upload Linux Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./xlsx2sql-linux-x64/xlsx2sql-linux-x64.tar.gz
+        asset_name: xlsx2sql-linux-x64.tar.gz
+        asset_content_type: application/gzip
