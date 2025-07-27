@@ -25,7 +25,7 @@ struct Cli {
     #[arg(short = 'f', long = "file", value_name = "FILE")]
     file_option: Option<PathBuf>,
 
-    /// Output SQL file path (default: stdout)
+    /// Output SQL file path (default: input filename with .sql extension)
     #[arg(short = 'o', long = "output", value_name = "FILE")]
     output: Option<PathBuf>,
 }
@@ -59,7 +59,12 @@ fn main() -> Result<(), Xlsx2SqlError> {
     let writer = FileOutputWriter;
     let destination = match cli.output {
         Some(path) => OutputDestination::File(path),
-        None => OutputDestination::Stdout,
+        None => {
+            // Generate output filename by replacing .xlsx with .sql
+            let mut output_path = input_path.clone();
+            output_path.set_extension("sql");
+            OutputDestination::File(output_path)
+        },
     };
 
     writer.write(&output_content, &destination)?;
