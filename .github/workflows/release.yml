@@ -108,77 +108,40 @@ jobs:
     - name: List downloaded files
       run: find . -name "*.zip" -o -name "*.tar.gz" | sort
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
-        body: |
-          # xlsx2sql ${{ github.ref_name }}
-          
-          Convert Excel files (.xlsx) to SQL INSERT statements.
-          
-          ## Download
-          
-          Choose the appropriate binary for your platform:
-          
-          - **Windows 64-bit**: `xlsx2sql-windows-x64.zip`
-          - **macOS Intel**: `xlsx2sql-macos-intel.tar.gz`
-          - **macOS Apple Silicon**: `xlsx2sql-macos-arm64.tar.gz`
-          - **Linux 64-bit**: `xlsx2sql-linux-x64.tar.gz`
-          
-          ## Usage
-          
-          ```bash
-          xlsx2sql input.xlsx           # Creates input.sql
-          xlsx2sql input.xlsx -o output.sql
-          ```
-          
-          ## Changes
-          
-          See the commit history for detailed changes in this release.
-        draft: false
-        prerelease: false
+    - name: Create Release with gh CLI
+      run: |
+        cat > release_notes.md << 'EOF'
+        ## xlsx2sql ${{ github.ref_name }}
 
-    - name: Upload Windows Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./xlsx2sql-windows-x64/xlsx2sql-windows-x64.zip
-        asset_name: xlsx2sql-windows-x64.zip
-        asset_content_type: application/zip
+        Convert Excel files (.xlsx) to SQL INSERT statements.
 
-    - name: Upload macOS Intel Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./xlsx2sql-macos-intel/xlsx2sql-macos-intel.tar.gz
-        asset_name: xlsx2sql-macos-intel.tar.gz
-        asset_content_type: application/gzip
+        ## Download
 
-    - name: Upload macOS ARM64 Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./xlsx2sql-macos-arm64/xlsx2sql-macos-arm64.tar.gz
-        asset_name: xlsx2sql-macos-arm64.tar.gz
-        asset_content_type: application/gzip
+        Choose the appropriate binary for your platform:
 
-    - name: Upload Linux Release Asset
-      uses: actions/upload-release-asset@v1
+        - **Windows 64-bit**: `xlsx2sql-windows-x64.zip`
+        - **macOS Intel**: `xlsx2sql-macos-intel.tar.gz`
+        - **macOS Apple Silicon**: `xlsx2sql-macos-arm64.tar.gz`
+        - **Linux 64-bit**: `xlsx2sql-linux-x64.tar.gz`
+
+        ## Usage
+
+        ```bash
+        xlsx2sql input.xlsx           # Creates input.sql
+        xlsx2sql input.xlsx -o output.sql
+        ```
+
+        ## Changes
+
+        See the commit history for detailed changes in this release.
+        EOF
+
+        gh release create ${{ github.ref_name }} \
+          --title "xlsx2sql ${{ github.ref_name }}" \
+          --notes-file release_notes.md \
+          ./xlsx2sql-windows-x64/xlsx2sql-windows-x64.zip \
+          ./xlsx2sql-macos-intel/xlsx2sql-macos-intel.tar.gz \
+          ./xlsx2sql-macos-arm64/xlsx2sql-macos-arm64.tar.gz \
+          ./xlsx2sql-linux-x64/xlsx2sql-linux-x64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./xlsx2sql-linux-x64/xlsx2sql-linux-x64.tar.gz
-        asset_name: xlsx2sql-linux-x64.tar.gz
-        asset_content_type: application/gzip
