@@ -60,14 +60,13 @@ impl SqlGenerator for MySqlGenerator {
                     .map(|val| self.format_sql_value(val))
                     .collect::<Vec<_>>()
                     .join(",");
-                format!("({})", row_str)
+                format!("({row_str})")
             })
             .collect::<Vec<_>>()
             .join(",\n");
 
         format!(
-            "INSERT INTO {} ({}) VALUES\n{};",
-            table_name, columns, values_str
+            "INSERT INTO {table_name} ({columns}) VALUES\n{values_str};"
         )
     }
 }
@@ -80,7 +79,7 @@ impl MySqlGenerator {
             SqlValue::Number(f) => f.to_string(),
             SqlValue::Integer(i) => i.to_string(),
             SqlValue::Boolean(b) => if *b { "1" } else { "0" }.to_string(),
-            SqlValue::DateTime(dt) => format!("'{}'", dt),
+            SqlValue::DateTime(dt) => format!("'{dt}'"),
         }
     }
 }

@@ -52,7 +52,7 @@ impl SheetData {
                 .map(|cell| match cell {
                     Data::String(s) => s.clone(),
                     Data::Empty => String::new(),
-                    other => format!("{}", other),
+                    other => format!("{other}"),
                 })
                 .collect();
 

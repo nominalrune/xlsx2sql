@@ -4,7 +4,7 @@ pub struct SqlFormatter;
 
 impl SqlFormatter {
     pub fn format_identifier(name: &str) -> String {
-        format!("`{}`", name)
+        format!("`{name}`")
     }
 
     pub fn escape_string(s: &str) -> String {
