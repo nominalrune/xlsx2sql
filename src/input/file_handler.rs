@@ -1,6 +1,6 @@
 // Input validation utilities
-use std::path::Path;
 use crate::errors::InputError;
+use std::path::Path;
 
 pub fn validate_file_exists(path: &Path) -> Result<(), InputError> {
     if !path.exists() {

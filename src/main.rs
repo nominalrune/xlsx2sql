@@ -2,15 +2,15 @@ use clap::Parser;
 use std::path::PathBuf;
 
 mod errors;
-mod parser;
 mod generator;
 mod input;
 mod output;
+mod parser;
 
 use errors::Xlsx2SqlError;
-use parser::{CalamineXlsxParser, XlsxParser};
 use generator::{MySqlGenerator, SqlGenerator};
-use output::{FileOutputWriter, OutputWriter, OutputDestination};
+use output::{FileOutputWriter, OutputDestination, OutputWriter};
+use parser::{CalamineXlsxParser, XlsxParser};
 
 #[derive(Parser)]
 #[command(name = "xlsx2sql")]
@@ -36,7 +36,7 @@ fn main() -> Result<(), Xlsx2SqlError> {
     // Determine input file path
     let input_path = cli.file.or(cli.file_option).ok_or_else(|| {
         Xlsx2SqlError::Input(errors::InputError::FileNotFound(
-            "No input file specified. Use: xlsx2sql <file> or xlsx2sql -f <file>".to_string()
+            "No input file specified. Use: xlsx2sql <file> or xlsx2sql -f <file>".to_string(),
         ))
     })?;
 
@@ -64,7 +64,7 @@ fn main() -> Result<(), Xlsx2SqlError> {
             let mut output_path = input_path.clone();
             output_path.set_extension("sql");
             OutputDestination::File(output_path)
-        },
+        }
     };
 
     writer.write(&output_content, &destination)?;

@@ -47,25 +47,26 @@ impl From<&Data> for SqlValue {
 impl SheetData {
     pub fn get_columns(&self) -> Result<Vec<String>, crate::errors::ParseError> {
         if let Some(first_row) = self.range.rows().next() {
-            let columns: Vec<String> = first_row.iter()
+            let columns: Vec<String> = first_row
+                .iter()
                 .map(|cell| match cell {
                     Data::String(s) => s.clone(),
                     Data::Empty => String::new(),
                     other => format!("{}", other),
                 })
                 .collect();
-            
+
             // Check if all headers are empty (missing headers)
             if columns.iter().all(|col| col.trim().is_empty()) {
                 return Err(crate::errors::ParseError::MissingHeaders);
             }
-            
+
             Ok(columns)
         } else {
             Err(crate::errors::ParseError::EmptySheet)
         }
     }
-    
+
     pub fn get_data_rows(&self) -> impl Iterator<Item = &[Data]> {
         self.range.rows().skip(1) // Skip header row
     }
@@ -76,7 +77,7 @@ impl SheetData {
 mod tests {
     use super::*;
 
-    #[test] 
+    #[test]
     fn test_workbook_data_creation() {
         let workbook = WorkbookData { sheets: vec![] };
         assert!(workbook.sheets.is_empty());

@@ -1,6 +1,6 @@
 use crate::errors::GeneratorError;
-use crate::parser::data_model::{WorkbookData, SqlStatement, SqlValue};
 use crate::generator::formatter::SqlFormatter;
+use crate::parser::data_model::{SqlStatement, SqlValue, WorkbookData};
 
 pub trait SqlGenerator {
     fn generate(&self, data: &WorkbookData) -> Result<Vec<SqlStatement>, GeneratorError>;
@@ -12,21 +12,19 @@ pub struct MySqlGenerator;
 impl SqlGenerator for MySqlGenerator {
     fn generate(&self, data: &WorkbookData) -> Result<Vec<SqlStatement>, GeneratorError> {
         let mut statements = Vec::new();
-        
+
         for sheet in &data.sheets {
             let columns = sheet.get_columns()?;
             if columns.is_empty() {
                 continue;
             }
-            
+
             let mut values = Vec::new();
             for row in sheet.get_data_rows() {
-                let row_values: Vec<SqlValue> = row.iter()
-                    .map(SqlValue::from)
-                    .collect();
+                let row_values: Vec<SqlValue> = row.iter().map(SqlValue::from).collect();
                 values.push(row_values);
             }
-            
+
             if !values.is_empty() {
                 statements.push(SqlStatement {
                     table_name: sheet.name.clone(),
@@ -35,25 +33,30 @@ impl SqlGenerator for MySqlGenerator {
                 });
             }
         }
-        
+
         // Check if no data was found
         if statements.is_empty() {
             return Err(GeneratorError::NoData);
         }
-        
+
         Ok(statements)
     }
-    
+
     fn format_statement(&self, statement: &SqlStatement) -> String {
         let table_name = SqlFormatter::format_identifier(&statement.table_name);
-        let columns = statement.columns.iter()
+        let columns = statement
+            .columns
+            .iter()
             .map(|col| SqlFormatter::format_identifier(col))
             .collect::<Vec<_>>()
             .join(", ");
-        
-        let values_str = statement.values.iter()
+
+        let values_str = statement
+            .values
+            .iter()
             .map(|row| {
-                let row_str = row.iter()
+                let row_str = row
+                    .iter()
                     .map(|val| self.format_sql_value(val))
                     .collect::<Vec<_>>()
                     .join(",");
@@ -61,8 +64,11 @@ impl SqlGenerator for MySqlGenerator {
             })
             .collect::<Vec<_>>()
             .join(",\n");
-        
-        format!("INSERT INTO {} ({}) VALUES\n{};", table_name, columns, values_str)
+
+        format!(
+            "INSERT INTO {} ({}) VALUES\n{};",
+            table_name, columns, values_str
+        )
     }
 }
 
@@ -87,13 +93,16 @@ mod tests {
     #[test]
     fn test_format_sql_value_escaping() {
         let generator = MySqlGenerator;
-        
+
         assert_eq!(generator.format_sql_value(&SqlValue::Null), "NULL");
         assert_eq!(generator.format_sql_value(&SqlValue::Integer(42)), "42");
         assert_eq!(generator.format_sql_value(&SqlValue::Number(3.14)), "3.14");
         assert_eq!(generator.format_sql_value(&SqlValue::Boolean(true)), "1");
         assert_eq!(generator.format_sql_value(&SqlValue::Boolean(false)), "0");
-        assert_eq!(generator.format_sql_value(&SqlValue::Text("test".to_string())), "'test'");
+        assert_eq!(
+            generator.format_sql_value(&SqlValue::Text("test".to_string())),
+            "'test'"
+        );
     }
 
     #[test]
@@ -101,7 +110,7 @@ mod tests {
         let generator = MySqlGenerator;
         let malicious_text = "'; DROP TABLE users; --";
         let sql_value = SqlValue::Text(malicious_text.to_string());
-        
+
         let formatted = generator.format_sql_value(&sql_value);
         assert_eq!(formatted, "'''; DROP TABLE users; --'");
     }
@@ -111,7 +120,7 @@ mod tests {
         let generator = MySqlGenerator;
         let japanese_text = "業務用";
         let sql_value = SqlValue::Text(japanese_text.to_string());
-        
+
         let formatted = generator.format_sql_value(&sql_value);
         assert_eq!(formatted, format!("'{}'", japanese_text));
     }
@@ -126,10 +135,10 @@ mod tests {
                 vec![SqlValue::Integer(2), SqlValue::Text("Jane".to_string())],
             ],
         };
-        
+
         let generator = MySqlGenerator;
         let sql = generator.format_statement(&statement);
-        
+
         assert!(sql.contains("INSERT INTO `test_table`"));
         assert!(sql.contains("(`id`, `name`)"));
         assert!(sql.contains("VALUES"));
@@ -144,10 +153,10 @@ mod tests {
             columns: vec!["id".to_string()],
             values: vec![vec![SqlValue::Integer(1)]],
         };
-        
+
         let generator = MySqlGenerator;
         let sql = generator.format_statement(&statement);
-        
+
         assert!(sql.contains("`table with spaces`"));
     }
 }
