@@ -65,9 +65,7 @@ impl SqlGenerator for MySqlGenerator {
             .collect::<Vec<_>>()
             .join(",\n");
 
-        format!(
-            "INSERT INTO {table_name} ({columns}) VALUES\n{values_str};"
-        )
+        format!("INSERT INTO {table_name} ({columns}) VALUES\n{values_str};")
     }
 }
 
