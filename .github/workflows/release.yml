@@ -110,35 +110,9 @@ jobs:
 
     - name: Create Release with gh CLI
       run: |
-        cat > release_notes.md << 'EOF'
-        ## xlsx2sql ${{ github.ref_name }}
-
-        Convert Excel files (.xlsx) to SQL INSERT statements.
-
-        ## Download
-
-        Choose the appropriate binary for your platform:
-
-        - **Windows 64-bit**: `xlsx2sql-windows-x64.zip`
-        - **macOS Intel**: `xlsx2sql-macos-intel.tar.gz`
-        - **macOS Apple Silicon**: `xlsx2sql-macos-arm64.tar.gz`
-        - **Linux 64-bit**: `xlsx2sql-linux-x64.tar.gz`
-
-        ## Usage
-
-        ```bash
-        xlsx2sql input.xlsx           # Creates input.sql
-        xlsx2sql input.xlsx -o output.sql
-        ```
-
-        ## Changes
-
-        See the commit history for detailed changes in this release.
-        EOF
-
         gh release create ${{ github.ref_name }} \
           --title "xlsx2sql ${{ github.ref_name }}" \
-          --notes-file release_notes.md \
+          --generate-notes \
           ./xlsx2sql-windows-x64/xlsx2sql-windows-x64.zip \
           ./xlsx2sql-macos-intel/xlsx2sql-macos-intel.tar.gz \
           ./xlsx2sql-macos-arm64/xlsx2sql-macos-arm64.tar.gz \
