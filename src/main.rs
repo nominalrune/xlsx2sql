@@ -15,7 +15,7 @@ use parser::{CalamineXlsxParser, XlsxParser};
 #[derive(Parser)]
 #[command(name = "xlsx2sql")]
 #[command(about = "Convert xlsx files to SQL INSERT statements")]
-#[command(version = "0.1.0")]
+#[command(version = "0.1.3")]
 struct Cli {
     /// Input XLSX file path
     #[arg(value_name = "FILE")]
