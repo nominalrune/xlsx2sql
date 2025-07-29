@@ -1,4 +1,5 @@
 use calamine::{Data, Range};
+use chrono::NaiveDate;
 
 #[derive(Debug, Clone)]
 pub struct WorkbookData {
@@ -36,7 +37,23 @@ impl From<&Data> for SqlValue {
             Data::Float(f) => SqlValue::Number(*f),
             Data::Int(i) => SqlValue::Integer(*i),
             Data::Bool(b) => SqlValue::Boolean(*b),
-            Data::DateTime(dt) => SqlValue::DateTime(dt.to_string()),
+            Data::DateTime(dt) => {
+                // Convert Excel datetime to SQL datetime format
+                // Excel dates start from 1900-01-01 (serial 1) 
+                let excel_epoch = NaiveDate::from_ymd_opt(1899, 12, 30).unwrap(); // Excel epoch is 1899-12-30
+                let days = dt.as_f64() as i64;
+                let seconds = ((dt.as_f64() - days as f64) * 86400.0) as u32;
+                
+                if let Some(date) = excel_epoch.checked_add_signed(chrono::Duration::days(days)) {
+                    if let Some(datetime) = date.and_hms_opt(0, 0, 0).and_then(|dt| dt.checked_add_signed(chrono::Duration::seconds(seconds as i64))) {
+                        SqlValue::DateTime(datetime.format("%Y-%m-%d %H:%M:%S").to_string())
+                    } else {
+                        SqlValue::Number(dt.as_f64())
+                    }
+                } else {
+                    SqlValue::Number(dt.as_f64())
+                }
+            },
             Data::Error(_) => SqlValue::Null,
             Data::DateTimeIso(dt) => SqlValue::DateTime(dt.clone()),
             Data::DurationIso(dur) => SqlValue::Text(dur.clone()),
@@ -52,7 +69,7 @@ impl SheetData {
                 .map(|cell| match cell {
                     Data::String(s) => s.clone(),
                     Data::Empty => String::new(),
-                    other => format!("{other}"),
+                    other => format!("{}", other),
                 })
                 .collect();
 
