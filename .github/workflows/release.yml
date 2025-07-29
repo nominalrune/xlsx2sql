@@ -117,15 +117,17 @@ jobs:
         cd ..
 
     - name: Create archive (Unix)
-      if: matrix.target != 'x86_64-pc-windows-gnu'
+      if: runner.os != 'Windows'
       run: |
-        mkdir -p dist
-        cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} dist/
-        cp README.md dist/ || echo "README.md not found"
-        cp LICENSE dist/ || echo "LICENSE not found"
-        cd dist
-        tar -czf ../${{ matrix.archive_name }}.tar.gz .
-        cd ..
+        mkdir -p archive
+        cp target/${{ matrix.target }}/release/xlsx2sql archive/
+        cp README.md LICENSE archive/
+        # Include unquarantine script for macOS builds
+        if [[ "${{ matrix.target }}" == *"apple-darwin"* ]]; then
+          cp unquarantine.sh archive/
+        fi
+        cd archive
+        tar czf ../xlsx2sql-${{ matrix.target }}.tar.gz *
 
     - name: Notarize macOS binary
       if: contains(matrix.target, 'apple-darwin') && env.APPLE_USERNAME != ''
@@ -175,7 +177,14 @@ jobs:
           --generate-notes \
           --notes "## Installation on macOS
 
-        **For unsigned binaries**: If you get a security warning on macOS, you can bypass it by:
+        **Method 1 (Easiest)**: For macOS builds, we now include an \`unquarantine.sh\` script:
+        \`\`\`bash
+        tar -xzf xlsx2sql-macos-*.tar.gz
+        cd xlsx2sql-macos-*
+        ./unquarantine.sh
+        \`\`\`
+
+        **Method 2 (Manual)**: If you get a security warning on macOS, you can bypass it by:
         1. Right-click the binary → Open → Open anyway
         2. Or run: \`xattr -d com.apple.quarantine xlsx2sql\`
         3. Or run: \`spctl --add --label 'xlsx2sql' xlsx2sql\`
