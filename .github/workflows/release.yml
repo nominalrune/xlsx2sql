@@ -117,17 +117,18 @@ jobs:
         cd ..
 
     - name: Create archive (Unix)
-      if: runner.os == 'macOS'
+      if: matrix.target != 'x86_64-pc-windows-gnu'
       run: |
-        mkdir -p archive
-        cp target/${{ matrix.target }}/release/xlsx2sql archive/
-        cp README.md LICENSE archive/
+        mkdir -p dist
+        cp target/${{ matrix.target }}/release/xlsx2sql dist/
+        cp README.md LICENSE dist/
         # Include unquarantine script for macOS builds
         if [[ "${{ matrix.target }}" == *"apple-darwin"* ]]; then
-          cp unquarantine.sh archive/
+          cp unquarantine.sh dist/
         fi
-        cd archive
-        tar czf ../xlsx2sql-${{ matrix.target }}.tar.gz *
+        cd dist
+        tar czf ../${{ matrix.archive_name }}.tar.gz *
+        cd ..
 
     - name: Notarize macOS binary
       if: contains(matrix.target, 'apple-darwin') && env.APPLE_USERNAME != ''
