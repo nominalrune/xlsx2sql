@@ -117,7 +117,7 @@ jobs:
         cd ..
 
     - name: Create archive (Unix)
-      if: runner.os != 'Windows'
+      if: runner.os == 'macOS'
       run: |
         mkdir -p archive
         cp target/${{ matrix.target }}/release/xlsx2sql archive/
