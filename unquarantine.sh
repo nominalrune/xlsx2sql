@@ -5,8 +5,10 @@
 set -e
 
 BINARY_NAME="xlsx2sql"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "🔓 Removing macOS quarantine from $BINARY_NAME..."
+cd "$SCRIPT_DIR"
 
 # Check if binary exists
 if [ ! -f "$BINARY_NAME" ]; then
