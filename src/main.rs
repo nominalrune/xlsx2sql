@@ -1,7 +1,7 @@
 use clap::Parser;
-use std::path::PathBuf;
 use dialoguer::Select;
 use std::fs;
+use std::path::PathBuf;
 
 mod errors;
 mod generator;
@@ -34,14 +34,13 @@ struct Cli {
 
 fn find_xlsx_files() -> Result<Vec<PathBuf>, Xlsx2SqlError> {
     let mut xlsx_files = Vec::new();
-    
-    let entries = fs::read_dir(".")
-        .map_err(|e| Xlsx2SqlError::Input(errors::InputError::Io(e)))?;
-    
+
+    let entries = fs::read_dir(".").map_err(|e| Xlsx2SqlError::Input(errors::InputError::Io(e)))?;
+
     for entry in entries {
         let entry = entry.map_err(|e| Xlsx2SqlError::Input(errors::InputError::Io(e)))?;
         let path = entry.path();
-        
+
         if let Some(extension) = path.extension() {
             let ext = extension.to_string_lossy().to_lowercase();
             if ext == "xlsx" || ext == "xls" {
@@ -49,38 +48,47 @@ fn find_xlsx_files() -> Result<Vec<PathBuf>, Xlsx2SqlError> {
             }
         }
     }
-    
+
     xlsx_files.sort();
     Ok(xlsx_files)
 }
 
 fn select_input_file() -> Result<PathBuf, Xlsx2SqlError> {
     let xlsx_files = find_xlsx_files()?;
-    
+
     if xlsx_files.is_empty() {
         return Err(Xlsx2SqlError::Input(errors::InputError::FileNotFound(
             "No Excel files (.xlsx/.xls) found in current directory".to_string(),
         )));
     }
-    
+
     if xlsx_files.len() == 1 {
         println!("Found Excel file: {}", xlsx_files[0].display());
         return Ok(xlsx_files[0].clone());
     }
-    
+
     // Convert PathBuf to strings for display
-    let file_names: Vec<String> = xlsx_files.iter()
-        .map(|path| path.file_name().unwrap_or_default().to_string_lossy().to_string())
+    let file_names: Vec<String> = xlsx_files
+        .iter()
+        .map(|path| {
+            path.file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+        })
         .collect();
-    
+
     let selection = Select::new()
         .with_prompt("Select an Excel file to convert:")
         .items(&file_names)
         .interact()
-        .map_err(|e| Xlsx2SqlError::Input(errors::InputError::Io(
-            std::io::Error::new(std::io::ErrorKind::InvalidInput, e.to_string())
-        )))?;
-    
+        .map_err(|e| {
+            Xlsx2SqlError::Input(errors::InputError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                e.to_string(),
+            )))
+        })?;
+
     Ok(xlsx_files[selection].clone())
 }
 
